@@ -1,7 +1,3 @@
-<style lang="scss">
-  @import '../scss/vue-select.scss';
-</style>
-
 <template>
   <div :dir="dir" class="v-select" :class="stateClasses">
     <slot name="header" v-bind="scope.header" />
@@ -570,6 +566,7 @@
 
     data() {
       return {
+        oldOptions: [],
         uid: uniqueId(),
         search: '',
         open: false,
@@ -588,6 +585,7 @@
        * @return {[type]} [description]
        */
       options (newOptions, oldOptions) {
+        this.oldOptions = oldOptions;
         let shouldReset = () => typeof this.resetOnOptionsChange === 'function'
           ? this.resetOnOptionsChange(newOptions, oldOptions, this.selectedValue)
           : this.resetOnOptionsChange;
@@ -780,7 +778,9 @@
        * @returns {*}
        */
       findOptionFromReducedValue (value) {
-        return this.options.find(option => JSON.stringify(this.reduce(option)) === JSON.stringify(value)) || value;
+        return this.oldOptions.find(option => JSON.stringify(this.reduce(option)) === JSON.stringify(value))
+          || this.options.find(option => JSON.stringify(this.reduce(option)) === JSON.stringify(value))
+          || value;
       },
 
       /**

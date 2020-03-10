@@ -1,6 +1,6 @@
 {
   "name": "vue-select",
-  "version": "3.8.0",
+  "version": "3.8.1",
   "description": "Everything you wish the HTML <select> element could do, wrapped up into a lightweight, extensible Vue component.",
   "author": "Jeff Sagal <sagalbot@gmail.com>",
   "homepage": "https://vue-select.org",
@@ -9,7 +9,7 @@
     "test": "tests"
   },
   "private": false,
-  "main": "dist/vue-select.js",
+  "main": "src/index.js",
   "license": "MIT",
   "prepare": "npm run build",
   "scripts": {
