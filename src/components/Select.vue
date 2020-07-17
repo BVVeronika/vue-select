@@ -594,7 +594,7 @@
           this.clearSelection();
         }
 
-        if (this.value && this.isTrackingValues) {
+        if (this.value && this.isTrackingValues && !this.search) {
           this.setInternalValueFromOptions(this.value);
         }
       },
