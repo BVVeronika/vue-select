@@ -1,7 +1,7 @@
 <template>
   <div :dir="dir" class="v-select" :class="stateClasses">
     <slot name="header" v-bind="scope.header" />
-    <div :id="`vs${uid}__combobox`" ref="toggle" @mousedown.prevent="toggleDropdown" class="vs__dropdown-toggle" role="combobox" :aria-expanded="dropdownOpen.toString()" :aria-owns="`vs${uid}__listbox`" aria-label="Search for option">
+    <div :id="`vs${uid}__combobox`" ref="toggle" @mousedown="toggleDropdown($event)" class="vs__dropdown-toggle" role="combobox" :aria-expanded="dropdownOpen.toString()" :aria-owns="`vs${uid}__listbox`" aria-label="Search for option">
 
       <div class="vs__selected-options" ref="selectedOptions">
         <slot v-for="option in selectedValue"
@@ -49,7 +49,7 @@
       </div>
     </div>
     <transition :name="transition">
-      <ul ref="dropdownMenu" v-if="dropdownOpen" :id="`vs${uid}__listbox`" class="vs__dropdown-menu" role="listbox" @mousedown.prevent="onMousedown" @mouseup="onMouseUp" v-append-to-body>
+      <ul ref="dropdownMenu" v-if="dropdownOpen" :id="`vs${uid}__listbox`" :key="`vs${uid}__listbox`" class="vs__dropdown-menu" role="listbox" @mousedown.prevent="onMousedown" @mouseup="onMouseUp" v-append-to-body>
         <slot name="list-header" v-bind="scope.listHeader" />
         <li
           role="option"
@@ -66,7 +66,7 @@
             {{ getOptionLabel(option) }}
           </slot>
         </li>
-        <li v-if="filteredOptions.length === 0" class="vs__no-options" @mousedown.stop="">
+        <li v-if="filteredOptions.length === 0" class="vs__no-options">
           <slot name="no-options" v-bind="scope.noOptions">Sorry, no matching options.</slot>
         </li>
         <slot name="list-footer" v-bind="scope.listFooter" />
@@ -617,6 +617,10 @@
        */
       multiple() {
         this.clearSelection()
+      },
+
+      open(isOpen) {
+        this.$emit(isOpen ? 'open' : 'close');
       }
     },
 
@@ -627,7 +631,7 @@
         this.setInternalValueFromOptions(this.value)
       }
 
-      this.$on('option:created', this.maybePushTag)
+      this.$on('option:created', this.pushTag)
     },
 
     methods: {
@@ -660,7 +664,6 @@
           }
           this.updateValue(option);
         }
-
         this.onAfterSelect(option)
       },
 
@@ -690,7 +693,7 @@
        */
       onAfterSelect(option) {
         if (this.closeOnSelect) {
-          this.open = !this.open
+          this.open = !this.open;
           this.searchEl.blur()
         }
 
@@ -708,7 +711,7 @@
        * @param value
        */
       updateValue (value) {
-        if (this.isTrackingValues) {
+        if (typeof this.value === 'undefined') {
           // Vue select has to manage value
           this.$data._value = value;
         }
@@ -726,22 +729,28 @@
 
       /**
        * Toggle the visibility of the dropdown menu.
-       * @param  {Event} e
+       * @param  {Event} event
        * @return {void}
        */
-      toggleDropdown ({target}) {
+      toggleDropdown (event) {
+        const targetIsNotSearch = event.target !== this.$refs.search;
+        if (targetIsNotSearch) {
+          event.preventDefault();
+        }
+
         //  don't react to click on deselect/clear buttons,
         //  they dropdown state will be set in their click handlers
         const ignoredButtons = [
           ...(this.$refs['deselectButtons'] || []),
-          ...([this.$refs['clearButton']] || [])
+          ...([this.$refs['clearButton']] || []),
         ];
 
-        if (ignoredButtons.some(ref => ref.contains(target) || ref === target)) {
+        if (ignoredButtons.some(ref => ref.contains(event.target) || ref === event.target)) {
+          event.preventDefault();
           return;
         }
 
-        if (this.open) {
+        if (this.open && targetIsNotSearch) {
           this.searchEl.blur();
         } else if (!this.disabled) {
           this.open = true;
@@ -770,7 +779,7 @@
       },
 
       /**
-       * Finds an option from this.options
+       * Finds an option from the options
        * where a reduced value matches
        * the passed in value.
        *
@@ -778,9 +787,24 @@
        * @returns {*}
        */
       findOptionFromReducedValue (value) {
-        return this.oldOptions.find(option => JSON.stringify(this.reduce(option)) === JSON.stringify(value))
-          || this.options.find(option => JSON.stringify(this.reduce(option)) === JSON.stringify(value))
-          || value;
+        const predicate = option => JSON.stringify(this.reduce(option)) === JSON.stringify(value);
+
+        const matches = [
+          ...this.options,
+          ...this.pushedTags,
+        ].filter(predicate);
+
+        if (matches.length === 1) {
+          return matches[0];
+        }
+
+        /**
+         * This second loop is needed to cover an edge case where `taggable` + `reduce`
+         * were used in conjunction with a `create-option` that doesn't create a
+         * unique reduced value.
+         * @see https://github.com/sagalbot/vue-select/issues/1089#issuecomment-597238735
+         */
+        return matches.find(match => this.optionComparator(match, this.$data._value)) || value;
       },
 
       /**
@@ -799,7 +823,7 @@
        * @return {this.value}
        */
       maybeDeleteValue() {
-        if (!this.searchEl.value.length && this.selectedValue && this.clearable) {
+        if (!this.searchEl.value.length && this.selectedValue && this.selectedValue.length && this.clearable) {
           let value = null;
           if (this.multiple) {
             value = [...this.selectedValue.slice(0, this.selectedValue.length - 1)]
@@ -836,10 +860,8 @@
        * @param  {Object || String} option
        * @return {void}
        */
-      maybePushTag(option) {
-        if (this.pushTags) {
-          this.pushedTags.push(option)
-        }
+      pushTag (option) {
+        this.pushedTags.push(option);
       },
 
       /**
@@ -921,7 +943,7 @@
         };
 
         const defaults = {
-          //  delete
+          //  backspace
           8: e => this.maybeDeleteValue(),
           //  tab
           9: e => this.onTab(),
@@ -965,7 +987,6 @@
        */
       selectedValue () {
         let value = this.value;
-
         if (this.isTrackingValues) {
           // Vue select has to manage value internally
           value = this.$data._value;
@@ -986,7 +1007,7 @@
        * @return {Array}
        */
       optionList () {
-        return this.options.concat(this.pushedTags);
+        return this.options.concat(this.pushTags ? this.pushedTags : []);
       },
 
       /**
@@ -1021,11 +1042,13 @@
               'aria-autocomplete': 'list',
               'aria-labelledby': `vs${this.uid}__combobox`,
               'aria-controls': `vs${this.uid}__listbox`,
-              'aria-activedescendant': this.typeAheadPointer > -1 ? `vs${this.uid}__option-${this.typeAheadPointer}` : '',
               'ref': 'search',
               'type': 'search',
               'autocomplete': this.autocomplete,
               'value': this.search,
+              ...(this.dropdownOpen && this.filteredOptions[this.typeAheadPointer] ? {
+                'aria-activedescendant': `vs${this.uid}__option-${this.typeAheadPointer}`
+              } : {}),
             },
             events: {
               'compositionstart': () => this.isComposing = true,
@@ -1133,10 +1156,13 @@
         }
 
         let options = this.search.length ? this.filter(optionList, this.search, this) : optionList;
-        if (this.taggable && this.search.length && !this.optionExists(this.createOption(this.search))) {
-          options.unshift(this.search)
+        if (this.taggable && this.search.length) {
+          const createdOption = this.createOption(this.search);
+          if (!this.optionExists(createdOption)) {
+            options.unshift(createdOption);
+          }
         }
-        return options
+        return options;
       },
 
       /**

@@ -1,6 +1,10 @@
 {
   "name": "vue-select",
+<<<<<<< HEAD
   "version": "3.8.1",
+=======
+  "version": "3.10.7",
+>>>>>>> 2615fa1411df4bc830e2cdd5ea61389b4814123b
   "description": "Everything you wish the HTML <select> element could do, wrapped up into a lightweight, extensible Vue component.",
   "author": "Jeff Sagal <sagalbot@gmail.com>",
   "homepage": "https://vue-select.org",
