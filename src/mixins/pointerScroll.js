@@ -22,20 +22,20 @@ export default {
      * @returns {*}
      */
     maybeAdjustScroll() {
-      const optionEl =
-        this.$refs.dropdownMenu?.children[this.typeAheadPointer] || false;
+      // const optionEl =
+      //   this.$refs.dropdownMenu?.children[this.typeAheadPointer] || false;
 
-      if (optionEl) {
-        const bounds = this.getDropdownViewport();
-        const { top, bottom, height } = optionEl.getBoundingClientRect();
+      // if (optionEl) {
+      //   const bounds = this.getDropdownViewport();
+      //   const { top, bottom, height } = optionEl.getBoundingClientRect();
 
-        if (top < bounds.top) {
-          return (this.$refs.dropdownMenu.scrollTop = optionEl.offsetTop);
-        } else if (bottom > bounds.bottom) {
-          return (this.$refs.dropdownMenu.scrollTop =
-            optionEl.offsetTop - (bounds.height - height));
-        }
-      }
+      //   if (top < bounds.top) {
+      //     return (this.$refs.dropdownMenu.scrollTop = optionEl.offsetTop);
+      //   } else if (bottom > bounds.bottom) {
+      //     return (this.$refs.dropdownMenu.scrollTop =
+      //       optionEl.offsetTop - (bounds.height - height));
+      //   }
+      // }
     },
 
     /**
